@@ -1,6 +1,6 @@
 import 'package:sembast/sembast.dart';
-import 'package:syncadong/app_database.dart';
-import 'package:syncadong/customer.dart';
+import 'package:syncadong/database/app_database.dart';
+import 'package:syncadong/models/customer.dart';
 
 class CustomerDao {
   static const String storeName = 'customer';

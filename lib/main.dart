@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:syncadong/customer.dart';
-import 'package:syncadong/customer_service.dart';
+import 'package:syncadong/models/customer.dart';
+import 'package:syncadong/services/customer_service.dart';
 
 void main() => runApp(MyApp());
 
