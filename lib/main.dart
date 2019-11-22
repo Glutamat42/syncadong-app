@@ -1,13 +1,10 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:syncadong/customer.dart';
 import 'package:syncadong/customer_service.dart';
-import 'package:syncadong/request_helper.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,7 +28,6 @@ class _MyHomePageState extends State<MyHomePage> {
   String _name = '';
   int _randomNumber = 0;
   List<Customer> _customers = [];
-  final Dio _dio = RequestHelper.initDio();
   final _formKey = GlobalKey<FormState>();
   CustomerService customerService = CustomerService();
 
@@ -68,7 +64,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () {
               _formKey.currentState.save();
               Customer newCustomer = Customer(name: _name, companyId: 1, randomNumber: _randomNumber);
-              _dio.post('customers', data: newCustomer.toMap()).then((_) => _updateCustomers());
+              customerService.post(newCustomer).then((List<Customer> newData) => setState(() => _customers = newData));
             },
           ),
           RaisedButton(
@@ -85,7 +81,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 leading: IconButton(
                   icon: Icon(Icons.delete),
                   onPressed: () {
-                    _dio.delete('customers/${_customers[index].id.toString()}').then((_) => _updateCustomers());
+                    customerService.delete(_customers[index]).then((List<Customer> newData) => setState(() => _customers = newData));
                   },
                 ),
                 onTap: () {
@@ -95,7 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     companyId: _customers[index].companyId,
                     name: _customers[index].name,
                   );
-                  _dio.put('customers', data: updateCustomer.toMap()).then((_) => _updateCustomers());
+                  customerService.put(updateCustomer).then((List<Customer> newData) => setState(() => _customers = newData));
                 },
               ),
               itemCount: _customers.length,

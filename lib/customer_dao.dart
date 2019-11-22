@@ -9,17 +9,13 @@ class CustomerDao {
 
   Future<Database> get _db async => await AppDatabase().database;
 
-  // TODO: insert array
-
   Future insertAll(List<Customer> customers) async {
     await _store.drop(await _db);
     (await _db).transaction((txn) async {
       for (Customer customer in customers) {
         await _store.record(customer.id).put(txn, customer.toMap());
-
       }
     });
-    print('SHIT ENDED');
   }
 
   Future insert(Customer customer) async {
@@ -44,9 +40,10 @@ class CustomerDao {
   }
 
   Future<List<Customer>> getAllSortedByName() async {
-    final finder = Finder(sortOrders: [
-      SortOrder('name'),
-    ]);
+    final finder = Finder(
+      sortOrders: [SortOrder('name')],
+      filter: Filter.isNull('deleted_at'),
+    );
 
     final recordSnapshots = await _store.find(
       await _db,
@@ -55,9 +52,17 @@ class CustomerDao {
 
     return recordSnapshots.map((snapshot) {
       final customer = Customer.fromMap(snapshot.value);
-//      customer.id = snapshot.key;
       return customer;
     }).toList();
   }
 
+  Future<int> getInternalId() async {
+    final finder = Finder(
+      limit: 1,
+      filter: Filter.isNull('deleted_at'),
+    );
+    int id = (await _store.find(await _db, finder: finder)).first.key - 1;
+    if (id >= 0) id = -1;
+    return id;
+  }
 }

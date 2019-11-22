@@ -6,6 +6,7 @@ class Customer {
   String name;
   DateTime createdAt;
   DateTime updatedAt;
+  DateTime deletedAt;
   int randomNumber;
 
   Customer({
@@ -14,6 +15,7 @@ class Customer {
     this.name,
     this.createdAt,
     this.updatedAt,
+    this.deletedAt,
     this.randomNumber,
   });
 
@@ -25,17 +27,19 @@ class Customer {
     id: json["id"] == null ? null : json["id"],
     companyId: json["company_id"] == null ? null : json["company_id"],
     name: json["name"] == null ? null : json["name"],
+    randomNumber: json["random_number"] == null ? null : json["random_number"],
     createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
     updatedAt: json["updated_at"] == null ? null : DateTime.parse(json["updated_at"]),
-    randomNumber: json["random_number"] == null ? null : json["random_number"],
+    deletedAt: json["deleted_at"] == null ? null : DateTime.parse(json["deleted_at"]),
   );
 
   Map<String, dynamic> toMap() => {
     "id": id == null ? null : id,
     "company_id": companyId == null ? null : companyId,
     "name": name == null ? null : name,
+    "random_number": randomNumber == null ? null : randomNumber,
     "created_at": createdAt == null ? null : createdAt.toIso8601String(),
     "updated_at": updatedAt == null ? null : updatedAt.toIso8601String(),
-    "random_number": randomNumber == null ? null : randomNumber,
+    "deleted_at": deletedAt == null ? null : deletedAt.toIso8601String(),
   };
 }
