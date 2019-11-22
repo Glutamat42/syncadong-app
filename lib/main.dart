@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:syncadong/customer.dart';
+import 'package:syncadong/customer_service.dart';
 import 'package:syncadong/request_helper.dart';
 
 void main() => runApp(MyApp());
@@ -32,10 +33,10 @@ class _MyHomePageState extends State<MyHomePage> {
   List<Customer> _customers = [];
   final Dio _dio = RequestHelper.initDio();
   final _formKey = GlobalKey<FormState>();
+  CustomerService customerService = CustomerService();
 
   _updateCustomers() {
-    _dio.get('customers').then((response) =>
-        setState(() => _customers = response.data.map<Customer>((item) => Customer.fromMap(item)).toList()));
+    customerService.get().then((List<Customer> customers) => setState(() => _customers = customers));
   }
 
   @override
@@ -72,7 +73,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           RaisedButton(
             child: Text('refresh list'),
-            onPressed: () => _updateCustomers(),
+            onPressed: () {
+              _updateCustomers();
+            },
           ),
           Expanded(
             child: ListView.builder(
