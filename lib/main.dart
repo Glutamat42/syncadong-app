@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:syncadong/models/customer.dart';
+import 'package:syncadong/models/transaction_log.dart';
 import 'package:syncadong/services/customer_service.dart';
 
 void main() => runApp(MyApp());
@@ -73,27 +74,38 @@ class _MyHomePageState extends State<MyHomePage> {
               _updateCustomers();
             },
           ),
+          RaisedButton(
+            child: Text('get transactions log'),
+            onPressed: () {
+              print(customerService.getTransactions().then((TransactionLog log) {
+                print(log.toJson());
+              }));
+            },
+          ),
           Expanded(
             child: ListView.builder(
-              itemBuilder: (BuildContext context, int index) => ListTile(
-                title: Text(_customers[index].name),
-                subtitle: Text('number: ${_customers[index].randomNumber.toString()}'),
-                leading: IconButton(
-                  icon: Icon(Icons.delete),
-                  onPressed: () {
-                    customerService.delete(_customers[index]).then((List<Customer> newData) => setState(() => _customers = newData));
-                  },
-                ),
-                onTap: () {
-                  Customer updateCustomer = Customer(
-                    id: _customers[index].id,
-                    randomNumber: _customers[index].randomNumber + 1,
-                    companyId: _customers[index].companyId,
-                    name: _customers[index].name,
-                  );
-                  customerService.put(updateCustomer).then((List<Customer> newData) => setState(() => _customers = newData));
-                },
-              ),
+              itemBuilder: (BuildContext context, int index) =>
+                  ListTile(
+                    title: Text(_customers[index].name),
+                    subtitle: Text('number: ${_customers[index].randomNumber.toString()}'),
+                    leading: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        customerService.delete(_customers[index]).then((List<Customer> newData) =>
+                            setState(() => _customers = newData));
+                      },
+                    ),
+                    onTap: () {
+                      Customer updateCustomer = Customer(
+                        id: _customers[index].id,
+                        randomNumber: _customers[index].randomNumber + 1,
+                        companyId: _customers[index].companyId,
+                        name: _customers[index].name,
+                      );
+                      customerService.put(updateCustomer).then((List<Customer> newData) =>
+                          setState(() => _customers = newData));
+                    },
+                  ),
               itemCount: _customers.length,
             ),
           )

@@ -1,14 +1,14 @@
 import 'package:dio/dio.dart';
-import 'package:intl/intl.dart';
 import 'package:syncadong/database/sync_timestamps.dart';
 import 'package:syncadong/models/customer.dart';
 import 'package:syncadong/database/customer_dao.dart';
 import 'package:syncadong/models/transaction_log.dart';
 import 'package:syncadong/network/request_helper.dart';
+import 'package:syncadong/utils/helpers.dart';
 
 class CustomerService {
   Dio _dio = RequestHelper.initDio();
-  String endpoint = 'customer';
+  String endpoint = 'customer'; // TODO make api endpoints consistent to be able to use one variable for the endpoint names
   CustomerDao _customerDao = CustomerDao();
   SyncTimestamps _syncTimestamps = SyncTimestamps();
 
@@ -66,13 +66,14 @@ class CustomerService {
 
   Future<TransactionLog> getTransactions() async {
     TransactionLog transactionLog;
-//    String lastSync = dateFormatter.format(await _syncTimestamps.get(endpoint));
-    await _dio.get('$endpoint/transactions',queryParameters: {'start_date': transactionLog}).then((Response response) async {
-      transactionLog = response.data.map<TransactionLog>((item) => TransactionLog.fromMap(item)).toList();
+    String lastSync = formatDateWithTime(await _syncTimestamps.get(endpoint));
+    print(lastSync);
+    await _dio.get('customers/transactions',queryParameters: {'start_date': lastSync}).then((Response response) async {
+      transactionLog = TransactionLog.fromMap(response.data);
 
       print(transactionLog.toMap());
-      // TODO do sync stuff here
-    }).catchError((_) async {
+      // TODO do sync stuff here incl updating syncTimestamps entry
+    }).catchError((_) async {print(_);
       print('offline, cant sync');
     });
     return transactionLog;

@@ -30,24 +30,27 @@ class TransactionLog {
 
 class LogEntry {
   int id;
-  DateTime createdAt;
+  DateTime timestamp;
 
   LogEntry({
     this.id,
-    this.createdAt,
+    this.timestamp,
   });
 
   factory LogEntry.fromJson(String str) => LogEntry.fromMap(json.decode(str));
 
   String toJson() => json.encode(toMap());
 
-  factory LogEntry.fromMap(Map<String, dynamic> json) => LogEntry(
+  factory LogEntry.fromMap(Map<String, dynamic> json) {
+    String timestamp = json["created_at"] ??json["updated_at"] ??json["deleted_at"];
+    return LogEntry(
     id: json["id"] == null ? null : json["id"],
-    createdAt: json["created_at"] == null ? null : DateTime.parse(json["created_at"]),
+    timestamp: timestamp == null ? null : DateTime.parse(timestamp),
   );
+  }
 
   Map<String, dynamic> toMap() => {
     "id": id == null ? null : id,
-    "created_at": createdAt == null ? null : createdAt.toIso8601String(),
+    "timestamp": timestamp == null ? null : timestamp.toIso8601String(),
   };
 }

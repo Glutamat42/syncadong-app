@@ -1,5 +1,6 @@
 import 'package:sembast/sembast.dart';
 import 'package:syncadong/database/app_database.dart';
+import 'package:syncadong/utils/helpers.dart';
 
 class SyncTimestamps {
   static const String storeName = 'sync_timestamps';
@@ -9,11 +10,11 @@ class SyncTimestamps {
   Future<Database> get _db async => await AppDatabase().database;
 
   Future insert(String storeName, DateTime timestamp) async {
-    await _store.record(storeName).put(await _db, {'timestamp': timestamp});
+    await _store.record(storeName).put(await _db, {'timestamp': formatDateWithTime(timestamp)});
   }
 
   Future update(String storeName, DateTime timestamp) async {
-    await _store.record(storeName).put(await _db, {'timestamp': timestamp});
+    await _store.record(storeName).put(await _db, {'timestamp': formatDateWithTime(timestamp)});
   }
 
   Future<DateTime> get(String storeName) async {
@@ -26,6 +27,6 @@ class SyncTimestamps {
       finder: finder,
     );
 
-    return recordSnapshots.value['timestamp'];
+    return parseDate(recordSnapshots.value['timestamp']);
   }
 }

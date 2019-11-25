@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:syncadong/utils/helpers.dart';
+
 class Customer {
   int id;
   int companyId;
@@ -38,8 +40,8 @@ class Customer {
     "company_id": companyId == null ? null : companyId,
     "name": name == null ? null : name,
     "random_number": randomNumber == null ? null : randomNumber,
-    "created_at": createdAt == null ? null : createdAt.toIso8601String(),
-    "updated_at": updatedAt == null ? null : updatedAt.toIso8601String(),
-    "deleted_at": deletedAt == null ? null : deletedAt.toIso8601String(),
+    "created_at": createdAt == null ? null : formatDateWithTime(createdAt),
+    "updated_at": updatedAt == null ? null : formatDateWithTime(updatedAt),
+    "deleted_at": deletedAt == null ? null : formatDateWithTime(deletedAt),
   };
 }
