@@ -102,6 +102,8 @@ class CustomerService {
       futures.add(_dio.get('$endpoint/${createdEntry.id}').then((Response response) {
         Customer createdCustomer = Customer.fromMap(response.data['data']);
         _customerDao.insert(createdCustomer);
+        // this entry is now up to date, including all possible updates between its creation und this get request
+        remoteTransactionLog = _removeEntriesFromUpdate(remoteTransactionLog, [createdEntry]);
       }));
     });
 
@@ -112,31 +114,33 @@ class CustomerService {
         _dio.post(endpoint, data: newLocalCustomer.toMap()).then((Response response) {
           Customer createdCustomer = Customer.fromMap(response.data);
           _customerDao.update(createdCustomer);
+          // the remote entry is now up to date, including all possible updates between its creation und this post request
+          localTransactionLog = _removeEntriesFromUpdate(localTransactionLog, [createdEntry]);
         });
       }));
     });
 
-    Future.wait(futures);
+    await Future.wait(futures);
 
     //// delete
     // remote changes
-    remoteTransactionLog = _removeDeleteEntriesFromUpdate(remoteTransactionLog, remoteTransactionLog.deleted);
+    remoteTransactionLog = _removeEntriesFromUpdate(remoteTransactionLog, remoteTransactionLog.deleted);
     remoteTransactionLog.deleted.forEach((LogEntry deletedEntry) {
       futures.add(_customerDao.deleteById(deletedEntry.id).then((_) {
         // deleted entries don't have to be updated later ...
-        localTransactionLog = _removeDeleteEntriesFromUpdate(localTransactionLog, [deletedEntry]);
+        localTransactionLog = _removeEntriesFromUpdate(localTransactionLog, [deletedEntry]);
         // prevent "double" deletion
         localTransactionLog.deleted = localTransactionLog.deleted.where((LogEntry entry) => entry.id != deletedEntry.id);
       }));
     });
-    Future.wait(futures); // to prevent "double" deletion
+    await Future.wait(futures); // to prevent "double" deletion
 
     // local changes
     localTransactionLog.deleted.forEach((LogEntry deletedEntry) {
       futures.add(_dio.delete('$endpoint/${deletedEntry.id}').then((Response response) {
         if (response.statusCode == 200) {
           _customerDao.deleteById(deletedEntry.id);
-          localTransactionLog = _removeDeleteEntriesFromUpdate(localTransactionLog, [deletedEntry]);
+          localTransactionLog = _removeEntriesFromUpdate(localTransactionLog, [deletedEntry]);
         } else {
           throw Exception('Deletion failed on backend');
         }
@@ -146,22 +150,19 @@ class CustomerService {
         _customerDao.update(customerUndeleted);
       }));
     });
-    Future.wait(futures);
+    await Future.wait(futures);
 
     //// udpate
     // remote changes
-    // dont update entries which are in remote created list - they are already up to date
     // TODO
     // local changes
-    // dont update entries which are in local created list - they are already up to date
     // TODO
 
     return _customerDao.getAllSortedByName();
   }
 
-  TransactionLog _removeDeleteEntriesFromUpdate(TransactionLog transactionLog, List<LogEntry> deletedList) {
-    for (LogEntry deletedEntry in deletedList) {
-//      transactionLog.created = transactionLog.created.where((LogEntry entry) => entry.id != deletedEntry.id);
+  TransactionLog _removeEntriesFromUpdate(TransactionLog transactionLog, List<LogEntry> entriesList) {
+    for (LogEntry deletedEntry in entriesList) {
       transactionLog.updated = transactionLog.updated.where((LogEntry entry) => entry.id != deletedEntry.id);
     }
     return transactionLog;

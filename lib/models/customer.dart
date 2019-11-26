@@ -1,8 +1,9 @@
 import 'dart:convert';
 
+import 'package:syncadong/models/base_model.dart';
 import 'package:syncadong/utils/helpers.dart';
 
-class Customer {
+class Customer implements BaseModel {
   int id;
   int companyId;
   String name;
@@ -20,6 +21,8 @@ class Customer {
     this.deletedAt,
     this.randomNumber,
   });
+
+  static Customer getFromMap(Map<String, dynamic> json) => Customer.fromMap(json);
 
   factory Customer.fromJson(String str) => Customer.fromMap(json.decode(str));
 
