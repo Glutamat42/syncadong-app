@@ -8,16 +8,16 @@ import 'package:syncadong/utils/helpers.dart';
 
 class CustomerService {
   Dio _dio = RequestHelper.initDio();
-  String endpoint = 'customer'; // TODO make api endpoints consistent to be able to use one variable for the endpoint names
+  String endpoint = 'customers';
   CustomerDao _customerDao = CustomerDao();
   SyncTimestamps _syncTimestamps = SyncTimestamps();
 
   Future<List<Customer>> get() async {
     List<Customer> data;
-    await _dio.get('customers').then((Response response) async {
+    await _dio.get(endpoint).then((Response response) async {
       data = response.data.map<Customer>((item) => Customer.fromMap(item)).toList();
       _customerDao.insertAll(data);
-      _syncTimestamps.update(endpoint, DateTime.now());
+      _syncTimestamps.update(endpoint, DateTime.now().toUtc());
     }).catchError((_) async {
       data = await _customerDao.getAllSortedByName();
     });
@@ -64,18 +64,106 @@ class CustomerService {
     return await _customerDao.getAllSortedByName();
   }
 
-  Future<TransactionLog> getTransactions() async {
+  Future<TransactionLog> getRemoteTransactions() async {
     TransactionLog transactionLog;
-    String lastSync = formatDateWithTime(await _syncTimestamps.get(endpoint));
-    print(lastSync);
-    await _dio.get('customers/transactions',queryParameters: {'start_date': lastSync}).then((Response response) async {
+    DateTime lastSync = await _syncTimestamps.get(endpoint);
+    await _dio.get('$endpoint/transactions', queryParameters: {
+      'start_date': lastSync == null ? null : formatDateWithTime(lastSync)
+    }).then((Response response) async {
       transactionLog = TransactionLog.fromMap(response.data);
 
       print(transactionLog.toMap());
-      // TODO do sync stuff here incl updating syncTimestamps entry
-    }).catchError((_) async {print(_);
+    }).catchError((_) async {
+      print(_);
       print('offline, cant sync');
     });
+    return transactionLog;
+  }
+
+  Future<TransactionLog> getLocalTransactions() async {
+    DateTime lastSync = await _syncTimestamps.get(endpoint);
+    _customerDao.getTransactions(lastSync);
+  }
+
+  Future<List<Customer>> synchronize() async {
+    if (await _syncTimestamps.get(endpoint) == null) {
+      print('first sync -> get all');
+      return null;
+    }
+
+    TransactionLog localTransactionLog;
+    Future<TransactionLog> localTransactionLogFuture = getLocalTransactions();
+    TransactionLog remoteTransactionLog = await getRemoteTransactions();
+    List<Future> futures = <Future>[];
+
+    //// create (first since they could also be deleted/edited)
+    // remote changes
+    remoteTransactionLog.created.forEach((LogEntry createdEntry) async {
+      futures.add(_dio.get('$endpoint/${createdEntry.id}').then((Response response) {
+        Customer createdCustomer = Customer.fromMap(response.data['data']);
+        _customerDao.insert(createdCustomer);
+      }));
+    });
+
+    // local changes
+    localTransactionLog = await localTransactionLogFuture;
+    localTransactionLog.created.forEach((LogEntry createdEntry) {
+      futures.add(_customerDao.getById(createdEntry.id).then((Customer newLocalCustomer) {
+        _dio.post(endpoint, data: newLocalCustomer.toMap()).then((Response response) {
+          Customer createdCustomer = Customer.fromMap(response.data);
+          _customerDao.update(createdCustomer);
+        });
+      }));
+    });
+
+    Future.wait(futures);
+
+    //// delete
+    // remote changes
+    remoteTransactionLog = _removeDeleteEntriesFromUpdate(remoteTransactionLog, remoteTransactionLog.deleted);
+    remoteTransactionLog.deleted.forEach((LogEntry deletedEntry) {
+      futures.add(_customerDao.deleteById(deletedEntry.id).then((_) {
+        // deleted entries don't have to be updated later ...
+        localTransactionLog = _removeDeleteEntriesFromUpdate(localTransactionLog, [deletedEntry]);
+        // prevent "double" deletion
+        localTransactionLog.deleted = localTransactionLog.deleted.where((LogEntry entry) => entry.id != deletedEntry.id);
+      }));
+    });
+    Future.wait(futures); // to prevent "double" deletion
+
+    // local changes
+    localTransactionLog.deleted.forEach((LogEntry deletedEntry) {
+      futures.add(_dio.delete('$endpoint/${deletedEntry.id}').then((Response response) {
+        if (response.statusCode == 200) {
+          _customerDao.deleteById(deletedEntry.id);
+          localTransactionLog = _removeDeleteEntriesFromUpdate(localTransactionLog, [deletedEntry]);
+        } else {
+          throw Exception('Deletion failed on backend');
+        }
+      }).catchError((_) {
+        Customer customerUndeleted;
+        customerUndeleted.deletedAt = null;
+        _customerDao.update(customerUndeleted);
+      }));
+    });
+    Future.wait(futures);
+
+    //// udpate
+    // remote changes
+    // dont update entries which are in remote created list - they are already up to date
+    // TODO
+    // local changes
+    // dont update entries which are in local created list - they are already up to date
+    // TODO
+
+    return _customerDao.getAllSortedByName();
+  }
+
+  TransactionLog _removeDeleteEntriesFromUpdate(TransactionLog transactionLog, List<LogEntry> deletedList) {
+    for (LogEntry deletedEntry in deletedList) {
+//      transactionLog.created = transactionLog.created.where((LogEntry entry) => entry.id != deletedEntry.id);
+      transactionLog.updated = transactionLog.updated.where((LogEntry entry) => entry.id != deletedEntry.id);
+    }
     return transactionLog;
   }
 }

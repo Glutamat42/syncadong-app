@@ -77,9 +77,15 @@ class _MyHomePageState extends State<MyHomePage> {
           RaisedButton(
             child: Text('get transactions log'),
             onPressed: () {
-              print(customerService.getTransactions().then((TransactionLog log) {
+              print(customerService.getRemoteTransactions().then((TransactionLog log) {
                 print(log.toJson());
               }));
+            },
+          ),
+          RaisedButton(
+            child: Text('sync'),
+            onPressed: () {
+              print(customerService.synchronize());
             },
           ),
           Expanded(

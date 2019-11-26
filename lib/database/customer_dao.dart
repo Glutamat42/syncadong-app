@@ -1,6 +1,7 @@
 import 'package:sembast/sembast.dart';
 import 'package:syncadong/database/app_database.dart';
 import 'package:syncadong/models/customer.dart';
+import 'package:syncadong/models/transaction_log.dart';
 
 class CustomerDao {
   static const String storeName = 'customer';
@@ -31,8 +32,10 @@ class CustomerDao {
     );
   }
 
-  Future delete(Customer customer) async {
-    final finder = Finder(filter: Filter.byKey(customer.id));
+  Future delete(Customer customer) => deleteById(customer.id);
+
+  Future deleteById(int id) async {
+    final finder = Finder(filter: Filter.byKey(id));
     await _store.delete(
       await _db,
       finder: finder,
@@ -56,6 +59,12 @@ class CustomerDao {
     }).toList();
   }
 
+  Future<Customer> getById(int id) async {
+    final finder = Finder(filter: Filter.byKey(id));
+    final List<RecordSnapshot<int, Map<String, dynamic>>> recordSnapshot = await _store.find(await _db, finder: finder);
+    return Customer.fromMap(recordSnapshot.first.value);
+  }
+
   Future<int> getInternalId() async {
     final finder = Finder(
       limit: 1,
@@ -64,5 +73,27 @@ class CustomerDao {
     int id = (await _store.find(await _db, finder: finder)).first.key - 1;
     if (id >= 0) id = -1;
     return id;
+  }
+
+  Future<TransactionLog> getTransactions(DateTime startDate) async {
+    TransactionLog transactionLog = TransactionLog();
+    List<Customer> allData = await getAllSortedByName();
+
+    transactionLog.created = allData
+        .where((Customer customer) => customer.createdAt.compareTo(startDate) > 0)
+        .map((Customer customer) => LogEntry(id: customer.id, timestamp: customer.createdAt))
+        .toList();
+
+    transactionLog.updated = allData
+        .where((Customer customer) => customer.updatedAt != customer.createdAt && customer.updatedAt.isAfter(startDate))
+        .map((Customer customer) => LogEntry(id: customer.id, timestamp: customer.updatedAt))
+        .toList();
+
+    transactionLog.deleted = allData
+        .where((Customer customer) => customer.deletedAt.isAfter(startDate))
+        .map((Customer customer) => LogEntry(id: customer.id, timestamp: customer.deletedAt))
+        .toList();
+
+    return transactionLog;
   }
 }

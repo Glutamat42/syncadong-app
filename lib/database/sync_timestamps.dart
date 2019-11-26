@@ -27,6 +27,6 @@ class SyncTimestamps {
       finder: finder,
     );
 
-    return parseDate(recordSnapshots.value['timestamp']);
+    return recordSnapshots == null ? null : parseDate(recordSnapshots.value['timestamp']);
   }
 }
