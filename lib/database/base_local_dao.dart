@@ -5,7 +5,7 @@ import 'package:syncadong/models/transaction_log.dart';
 
 abstract class BaseLocalDao<T extends BaseModel> {
   final String storeName;
-  final _store;
+  final StoreRef _store;
 
   Future<Database> get _db async => await AppDatabase().database;
 
@@ -42,13 +42,13 @@ abstract class BaseLocalDao<T extends BaseModel> {
   }
 
   Future<List<T>> getAll() async {
-    final recordSnapshots = await _store.find(
+    final List<RecordSnapshot> recordSnapshots = await _store.find(
       await _db,
       finder: Finder(
         filter: Filter.isNull('deleted_at'),
       ),
     );
-    return recordSnapshots.map((snapshot) => this.fromMap(snapshot.value)).toList();
+    return recordSnapshots.map((RecordSnapshot snapshot) => this.fromMap(snapshot.value)).toList();
   }
 
   /// override this with T.fromMap [eg T fromMap(Map<String, dynamic> json) => T.fromMap(json)]

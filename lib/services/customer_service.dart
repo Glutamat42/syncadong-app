@@ -19,7 +19,7 @@ class CustomerService {
       _customerDao.insertAll(data);
       _syncTimestamps.update(endpoint, DateTime.now().toUtc());
     }).catchError((_) async {
-      data = await _customerDao.getAllSortedByName();
+      data = await _customerDao.getAll();
     });
     return data;
   }
@@ -36,20 +36,20 @@ class CustomerService {
     });
     await _customerDao.insert(data);
 
-    return await _customerDao.getAllSortedByName();
+    return await _customerDao.getAll();
   }
 
   Future<List<Customer>> put(Customer customer) async {
     Customer data;
     await _dio.put(endpoint, data: customer.toMap()).then((Response response) {
-      data = Customer.fromMap(response.data);
+      data = Customer.fromMap(response.data['data']);
     }).catchError((_) async {
       data = customer;
       data.updatedAt = DateTime.now();
     });
     await _customerDao.insert(data);
 
-    return await _customerDao.getAllSortedByName();
+    return await _customerDao.getAll();
   }
 
   Future<List<Customer>> delete(Customer customer) async {
@@ -61,7 +61,7 @@ class CustomerService {
       await _customerDao.update(data);
     });
 
-    return await _customerDao.getAllSortedByName();
+    return await _customerDao.getAll();
   }
 
   Future<TransactionLog> getRemoteTransactions() async {
@@ -158,7 +158,7 @@ class CustomerService {
     // local changes
     // TODO
 
-    return _customerDao.getAllSortedByName();
+    return _customerDao.getAll();
   }
 
   TransactionLog _removeEntriesFromUpdate(TransactionLog transactionLog, List<LogEntry> entriesList) {
